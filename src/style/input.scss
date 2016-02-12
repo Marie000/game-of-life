@@ -1,0 +1,56 @@
+$grey: #c5c5c5;
+$lightBlue: #92dce0;
+$blue: #0092d7;
+$green: #3ec303;
+$orange: #ee8d09;
+$darkgrey: #999999;
+
+
+.btn {
+	width: 100px;
+	margin: 15px 55px;
+	text-align:center;
+	background:$grey;
+	border: 2px solid $blue;
+	color: $blue;
+	font-size: 20px;
+	text-shadow: none;
+}
+.btn:hover, .btn:focus, .btn:active {
+	background:$darkgrey;
+	color:$blue;
+	border: 2px solid $blue;
+}
+
+.pixelRow {
+	margin:-2px 0;
+	padding:0;
+}
+h1{
+	padding: 30px;
+	font-size:40px;
+}
+body {
+	background-color: $lightBlue;
+	text-align:center;
+	color: $blue;
+	font-family: 'Cabin Sketch', cursive;
+}
+p, ul{
+	text-align:left;
+	line-height:1.5;
+}
+ul{
+	list-style-type:circle;
+}
+.explanation {
+  margin: 10px 25px;
+}
+h3 {
+	font-size:25px;
+	padding: 10px;
+}
+
+#grid {
+	text-align:center;
+}

@@ -20358,16 +20358,17 @@ var Grid = React.createClass({
   getInitialState: function () {
     return {
       list: array,
-      width: 10,
-      height: 15,
+      width: 20,
+      height: 30,
       cleared: this.props.cleared,
-      stopped: this.props.stopped
+      stopped: this.props.stopped,
+      generations: 0
     };
   },
   componentWillMount: function () {
     var width = this.state.width;
     var height = this.state.height;
-
+    //initial grid (random)
     for (i = 0; i < height; i++) {
       array[i] = new Array();
       for (j = 0; j < width; j++) {
@@ -20381,47 +20382,67 @@ var Grid = React.createClass({
     }
   },
   componentDidMount: function () {
+    //launch performCheck on initial grid
     Actions.performCheck(this.state.list);
   },
   componentDidUpdate: function () {
+    //after each new grid is displayed, launch performCheck again (unless stopped)
     var templist = this.state.list;
-    var update = function () {
+    var updatelist = function () {
       Actions.performCheck(templist);
     };
-    if (this.props.stopped === false) {
-      setTimeout(update, 500);
+    if (!this.props.stopped) {
+      setTimeout(updatelist, 500);
     }
-    if (this.props.cleared) {
+  },
+  componentWillReceiveProps: function (nextProps) {
+    //when cleared button is pressed, return blank array
+    if (nextProps.cleared) {
       var clearedList = [];
-      console.log(this.state.height);
+      console.log('cleared');
       for (i = 0; i < this.state.height; i++) {
         clearedList[i] = new Array();
         for (j = 0; j < this.state.width; j++) {
           clearedList[i][j] = 0;
         }
       }
-      this.setState({ list: clearedList });
+      this.setState({ list: clearedList, generations: 0 });
     }
   },
-
   onChange: function (e, newlist) {
-    this.setState({ list: newlist });
+    //when new list received from store
+    if (!this.props.stopped) {
+      this.setState({ list: newlist, generations: this.state.generations + 1 });
+    } else {
+      this.setState({ list: newlist });
+    }
   },
   render: function () {
-    var generatePixels = this.state.list.map(function (x, index) {
+    var ifstopped = this.props.stopped;
+    var ifcleared = this.props.cleared;
+    var listprop = this.state.list;
+    var value;
+    var generatePixels = this.state.list.map(function (item, index) {
       var xindex = index;
       return React.createElement(
         'div',
-        null,
-        x.map(function (y, index) {
+        { className: 'pixelRow' },
+        item.map(function (y, index) {
           var newId = xindex.toString() + "-" + index.toString();
-          return React.createElement(Pixel, { key: newId, className: 'pixel', value: y });
+          return React.createElement(Pixel, { key: newId, identification: newId, className: 'pixel', value: y,
+            list: listprop, stopped: ifstopped, cleared: ifcleared });
         })
       );
     });
     return React.createElement(
       'div',
-      null,
+      { id: 'grid' },
+      React.createElement(
+        'h3',
+        null,
+        'Generations: ',
+        this.state.generations
+      ),
       generatePixels
     );
   }
@@ -20442,31 +20463,44 @@ var Pixel = React.createClass({
   getInitialState: function () {
     return {
       value: this.props.value,
-      background: 'white'
+      background: 'white',
+      list: this.props.list
     };
   },
   changeState: function () {
+    var list = this.props.list;
+    var pixelarray = this.props.identification.split('-');
+    console.log(pixelarray);
+    var xvalue = parseInt(pixelarray[0]);
+    var yvalue = parseInt(pixelarray[1]);
     if (this.state.value === 1) {
       this.setState({ value: 0 });
+      list[xvalue].splice(yvalue, 1, 0);
     } else {
       this.setState({ value: 1 });
+      list[xvalue].splice(yvalue, 1, 1);
     }
+    this.setState({ list: list }, function () {
+      Actions.updateList(list);
+      console.log('list', list);
+    });
   },
-  componentWillReceiveProps: function () {
-    this.setState({ value: this.props.value });
-    if (this.props.value === 1) {
-      this.setState({ background: 'red' });
-    } else {
-      this.setState({ background: 'white' });
-    }
+
+  componentWillReceiveProps: function (nextProps) {
+    this.setState({ value: nextProps.value });
   },
   render: function () {
     var MyStyle = {
-      background: this.state.background,
-      width: '20px',
-      height: '20px',
-      border: 'solid'
+      background: '#C5C5C5',
+      width: '18px',
+      height: '18px',
+      border: 'solid 1px #aaaaaa'
     };
+    if (this.props.value === 1) {
+      MyStyle.background = "#EE8D09";
+    } else {
+      MyStyle.background = "#C5C5C5";
+    }
     return React.createElement('button', { key: this.props.key, className: 'pixels', style: MyStyle, onClick: this.changeState });
   }
 });
@@ -20479,53 +20513,187 @@ var ReactDOM = require('react-dom');
 var Grid = require('./components/grid.jsx');
 
 var Main = React.createClass({
-	displayName: 'Main',
+  displayName: 'Main',
 
-	getInitialState: function () {
-		return {
-			stopped: false,
-			cleared: false
-		};
-	},
-	stop: function () {
-		console.log('stopped clicked');
-		this.setState({ stopped: true });
-	},
-	startPlay: function () {
-		console.log('start clicked');
-		this.setState({ stopped: false });
-	},
-	clearBoard: function () {
-		console.log('clear clicked');
-		this.setState({ cleared: true });
-	},
-	render: function () {
-		console.log('from main.jsx', this.state.stopped);
-		return React.createElement(
-			'div',
-			null,
-			React.createElement(
-				'div',
-				null,
-				React.createElement(
-					'button',
-					{ onClick: this.stop },
-					'Stop'
-				),
-				React.createElement(
-					'button',
-					{ onClick: this.startPlay },
-					'Start'
-				),
-				React.createElement(
-					'button',
-					{ onClick: this.clearBoard },
-					'Clear'
-				)
-			),
-			React.createElement(Grid, { stopped: this.state.stopped, cleared: this.state.cleared })
-		);
-	}
+  getInitialState: function () {
+    return {
+      stopped: false,
+      cleared: false
+    };
+  },
+  stop: function () {
+    console.log('stopped clicked');
+    this.setState({ stopped: true });
+  },
+  startPlay: function () {
+    console.log('start clicked');
+    if (this.state.stopped) {
+      this.setState({ stopped: false, cleared: false });
+    }
+  },
+  clearBoard: function () {
+    console.log('clear clicked');
+    this.setState({ stopped: true });
+    this.setState({ cleared: true });
+  },
+  render: function () {
+    if (this.state.stopped) {
+      return React.createElement(
+        'div',
+        { className: 'row' },
+        React.createElement(
+          'div',
+          { className: 'col-sm-3 col-lg-4' },
+          React.createElement('br', null),
+          React.createElement('br', null),
+          React.createElement('br', null),
+          React.createElement('br', null),
+          React.createElement(
+            'button',
+            { className: 'btn btn-default', onClick: this.startPlay },
+            'Play'
+          ),
+          React.createElement(
+            'button',
+            { className: 'btn btn-default', onClick: this.clearBoard },
+            'Clear'
+          )
+        ),
+        React.createElement(
+          'div',
+          { className: 'col-sm-6 col-lg-4' },
+          React.createElement(Grid, { stopped: this.state.stopped, cleared: this.state.cleared, key: 'grid' })
+        ),
+        React.createElement(
+          'div',
+          { className: 'col-sm-3 col-lg-4' },
+          React.createElement(
+            'div',
+            { className: 'explanation' },
+            React.createElement(
+              'h3',
+              null,
+              'What is Conway\'s Game Of Life?'
+            ),
+            React.createElement(
+              'p',
+              null,
+              'Conway\'s game of life is a life simulator. Each cell in the grid is either alive or dead and its fate is determined by the number of live neighbors.'
+            ),
+            React.createElement(
+              'p',
+              null,
+              ' The rules: '
+            ),
+            React.createElement(
+              'ul',
+              null,
+              React.createElement(
+                'li',
+                null,
+                'If a live cell has fewer than 2 live neighbors, it dies (underpopulation)'
+              ),
+              React.createElement(
+                'li',
+                null,
+                'If a live cell has more than 3 live neighbors, it dies (overpopulation)'
+              ),
+              React.createElement(
+                'li',
+                null,
+                'If a dead cell has 3 live neighbors, it comes to life (reproduction)'
+              )
+            ),
+            React.createElement(
+              'p',
+              null,
+              'Find more information on ',
+              React.createElement(
+                'a',
+                { href: 'https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life', target: '_blank' },
+                'wikipedia'
+              )
+            )
+          )
+        )
+      );
+    } else {
+      return React.createElement(
+        'div',
+        { className: 'row' },
+        React.createElement(
+          'div',
+          { className: 'col-sm-3 col-lg-4' },
+          React.createElement('br', null),
+          React.createElement('br', null),
+          React.createElement('br', null),
+          React.createElement('br', null),
+          React.createElement(
+            'button',
+            { className: 'btn btn-default', onClick: this.stop },
+            'Pause'
+          )
+        ),
+        React.createElement(
+          'div',
+          { className: 'col-sm-6 col-lg-4' },
+          React.createElement(Grid, { stopped: this.state.stopped, cleared: this.state.cleared, key: 'grid' })
+        ),
+        React.createElement(
+          'div',
+          { className: 'col-sm-3 col-lg-4' },
+          React.createElement(
+            'div',
+            { className: 'explanation' },
+            React.createElement(
+              'h3',
+              null,
+              'What is Conway\'s Game Of Life?'
+            ),
+            React.createElement(
+              'p',
+              null,
+              'Conway\'s game of life is a life simulator. Each cell in the grid is either alive or dead and its fate is determined by the number of live neighbors.'
+            ),
+            React.createElement(
+              'p',
+              null,
+              ' The rules: '
+            ),
+            React.createElement(
+              'ul',
+              null,
+              React.createElement(
+                'li',
+                null,
+                'If a live cell has fewer than 2 live neighbors, it dies (underpopulation)'
+              ),
+              React.createElement(
+                'li',
+                null,
+                'If a live cell has more than 3 live neighbors, it dies (overpopulation)'
+              ),
+              React.createElement(
+                'li',
+                null,
+                'If a dead cell has 3 live neighbors, it comes to life (reproduction)'
+              )
+            ),
+            React.createElement(
+              'p',
+              null,
+              'Find more information on ',
+              React.createElement(
+                'a',
+                { href: 'https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life', target: '_blank' },
+                'wikipedia'
+              )
+            )
+          )
+        )
+      );
+    }
+  }
 });
 
 ReactDOM.render(React.createElement(Main, null), document.getElementById('main'));
@@ -20544,52 +20712,42 @@ var array = [];
 
 var PixelStore = Reflux.createStore({
 	listenables: [Actions],
-
-	updateList: function (pixel) {
-		for (var x = 0; x < array.length; x++) {
-			if (array[x].id === pixel) {
-				console.log('found');
-				if (array[x].alive) {
-					array[x].alive = false;
-					this.fireUpdate(pixel, 'dead');
-					this.performCheck(pixel);
-				} else {
-					array[x].alive = true;
-					console.log(pixel);
-					this.fireUpdate(pixel, 'alive');
-					this.performCheck(pixel);
-				}
-			}
-		}
+	updateList: function (list) {
+		//take new list created by pixel and send it to the grid
+		this.fireUpdate(list);
 	},
 	performCheck: function (list) {
-		var copyOfList = list;
-		// count alive neighbors
+		//cloning list
+		var copyOfList = [];
+		for (var x = 0; x < list.length; x++) {
+			copyOfList.push(list[x].slice(0));
+		}
+		// count alive neighbors,ignorings x-1 or x+1 if it doesn't exist (vertical edges are not a problem, they return undefined)
 		for (var x = 0; x < list.length; x++) {
 			var xarray = list[x];
 			for (var y = 0; y < xarray.length; y++) {
 				var count = 0;
-				if (list[x - 1] && list[x + 1]) {
+				if (list[x + 1] === undefined) {
+					var newarray = [list[x - 1][y - 1], list[x][y - 1], list[x - 1][y], list[x - 1][y + 1], list[x][y + 1]];
+				} else if (list[x - 1] === undefined) {
+					var newarray = [list[x][y - 1], list[x + 1][y - 1], list[x + 1][y], list[x][y + 1], list[x + 1][y + 1]];
+				} else {
 					var newarray = [list[x - 1][y - 1], list[x][y - 1], list[x + 1][y - 1], list[x - 1][y], list[x + 1][y], list[x - 1][y + 1], list[x][y + 1], list[x + 1][y + 1]];
 				}
-				if (!list[x + 1]) {
-					var newarray = [list[x - 1][y - 1], list[x][y - 1], list[x - 1][y], list[x - 1][y + 1], list[x][y + 1]];
-				}
-				if (!list[x - 1]) {
-					var newarray = [list[x][y - 1], list[x + 1][y - 1], list[x + 1][y], list[x][y + 1], list[x + 1][y + 1]];
-				}
-				var counting = newarray.map(function (item) {
+				newarray.map(function (item) {
 					if (item === 1) {
 						count++;
 					}
 				});
-				counting;
+				//underpopulation			
 				if (list[x][y] === 1 && count < 2) {
 					copyOfList[x].splice(y, 1, 0);
 				}
+				//overpopulation
 				if (list[x][y] === 1 && count > 3) {
 					copyOfList[x].splice(y, 1, 0);
 				}
+				//reproduction
 				if (list[x][y] === 0 && count === 3) {
 					copyOfList[x].splice(y, 1, 1);
 				}

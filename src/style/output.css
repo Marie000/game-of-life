@@ -1,0 +1,47 @@
+.btn {
+  width: 100px;
+  margin: 15px 55px;
+  text-align: center;
+  background: #c5c5c5;
+  border: 2px solid #0092d7;
+  color: #0092d7;
+  font-size: 20px;
+  text-shadow: none; }
+
+.btn:hover, .btn:focus, .btn:active {
+  background: #999999;
+  color: #0092d7;
+  border: 2px solid #0092d7; }
+
+.pixelRow {
+  margin: -2px 0;
+  padding: 0; }
+
+h1 {
+  padding: 30px;
+  font-size: 40px; }
+
+body {
+  background-color: #92dce0;
+  text-align: center;
+  color: #0092d7;
+  font-family: 'Cabin Sketch', cursive; }
+
+p, ul {
+  text-align: left;
+  line-height: 1.5; }
+
+ul {
+  list-style-type: circle; }
+
+.explanation {
+  margin: 10px 25px; }
+
+h3 {
+  font-size: 25px;
+  padding: 10px; }
+
+#grid {
+  text-align: center; }
+
+/*# sourceMappingURL=output.css.map */
